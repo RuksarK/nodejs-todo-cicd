@@ -1,35 +1,36 @@
-pipeline{
+pipeline {
     agent any
     
     stages{
-        stage("Code Clone"){
+        stage("code"){
             steps{
-                echo "Code Clone Stage"
+                echo "Cloning the code"
                 git url: "https://github.com/RuksarK/nodejs-todo-cicd.git", branch: "master"
             }
         }
-        stage("Code Build & Test"){
+        stage("Build"){
             steps{
-                echo "Code Build Stage"
+                echo "Building the code"
                 sh "docker build -t todo-app ."
             }
         }
-        stage("Push To DockerHub"){
+        stage("Push"){
             steps{
-                withCredentials([usernamePassword(
-                    credentialsId:"dockerHub",
-                    usernameVariable:"dockerHubUser", 
-                    passwordVariable:"dockerHubPass")]){
-                sh 'echo $dockerHubPass | docker login -u $dockerHubUser --password-stdin'
-                sh "docker image tag todo-app:latest ${env.dockerHubUser}/node-app:latest"
-                sh "docker push ${env.dockerHubUser}/node-app:latest"
+                echo "Push the code on docker hub"
+                withCredentials([usernamePassword(credentialsId:"dockerHub",passwordVariable:"dockerHubPass",usernameVariable:"dockerHubUser")]){
+                sh "docker tag todo-app ${env.dockerHubUser}/todo-app:latest"
+                sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
+                sh "docker push ${env.dockerHubUser}/todo-app:latest"
                 }
+                
             }
         }
         stage("Deploy"){
             steps{
-                sh "docker compose down && docker compose up -d --build"
+                echo "Deploying the code"
+                sh "docker-compose down && docker-compose up -d"
             }
         }
+        
     }
 }
